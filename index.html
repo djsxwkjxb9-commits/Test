@@ -131,6 +131,7 @@
       background: linear-gradient(120deg, transparent, rgba(124, 58, 237, 0.2), transparent);
       opacity: 0;
       transition: opacity 0.4s ease;
+      pointer-events: none;
     }
 
     .display.active::after {
@@ -143,6 +144,8 @@
       min-height: 20px;
       letter-spacing: 0.02em;
       word-break: break-all;
+      position: relative;
+      z-index: 1;
     }
 
     .expression-input {
@@ -157,6 +160,8 @@
       letter-spacing: 0.02em;
       box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
       transition: box-shadow 0.2s ease, background 0.2s ease;
+      position: relative;
+      z-index: 1;
     }
 
     .expression-input:focus {
@@ -174,6 +179,8 @@
       font-weight: 600;
       text-align: right;
       word-break: break-all;
+      position: relative;
+      z-index: 1;
     }
 
     .toolbar {
