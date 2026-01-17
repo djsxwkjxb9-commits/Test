@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scientific Calculator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06080f;
+      --panel: #121826;
+      --panel-glass: rgba(18, 24, 38, 0.82);
+      --text: #eef2ff;
+      --muted: #94a3b8;
+      --accent: #7c3aed;
+      --accent-bright: #a78bfa;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --shadow: 0 25px 60px rgba(2, 6, 23, 0.65);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at top, rgba(124, 58, 237, 0.25), transparent 55%),
+        radial-gradient(circle at bottom, rgba(14, 116, 144, 0.2), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .calculator {
+      width: min(520px, 100%);
+      background: var(--panel-glass);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      display: grid;
+      gap: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.08);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent-bright);
+    }
+
+    .header span {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .display {
+      background: rgba(2, 6, 23, 0.6);
+      border-radius: 18px;
+      padding: 16px 18px;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .display::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent, rgba(124, 58, 237, 0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .display.active::after {
+      opacity: 1;
+    }
+
+    .display .expression {
+      font-size: 1rem;
+      color: var(--muted);
+      min-height: 20px;
+      letter-spacing: 0.02em;
+      word-break: break-all;
+    }
+
+    .display .result {
+      font-size: clamp(2rem, 5vw, 2.9rem);
+      font-weight: 600;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(58px, 1fr));
+      gap: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: rgba(148, 163, 184, 0.12);
+      color: inherit;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.45), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    button:hover::after {
+      opacity: 1;
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--accent-bright);
+      outline-offset: 2px;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .op {
+      background: rgba(124, 58, 237, 0.18);
+      color: var(--accent-bright);
+    }
+
+    .utility {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--muted);
+    }
+
+    .danger {
+      background: rgba(239, 68, 68, 0.18);
+      color: var(--danger);
+    }
+
+    .equals {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(14, 116, 144, 0.9));
+      color: white;
+      grid-column: span 2;
+      box-shadow: 0 12px 25px rgba(124, 58, 237, 0.45);
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 560px) {
+      .calculator {
+        padding: 18px;
+      }
+
+      .keys {
+        grid-template-columns: repeat(4, minmax(56px, 1fr));
+      }
+
+      .wide {
+        grid-column: span 1;
+      }
+
+      .equals {
+        grid-column: span 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="calculator" aria-label="Scientific calculator">
+    <header class="header">
+      <h1>Quantum Calc</h1>
+      <span>Offline · Scientific</span>
+    </header>
+
+    <section class="display" aria-live="polite" id="display">
+      <div class="expression" id="expression">Ready</div>
+      <div class="result" id="result">0</div>
+    </section>
+
+    <section class="keys" aria-label="Calculator buttons">
+      <button class="danger" data-action="clear">C</button>
+      <button class="utility" data-action="backspace">⌫</button>
+      <button class="utility" data-action="toggle-sign">±</button>
+      <button class="utility" data-value="%">%</button>
+      <button class="op" data-value="/">÷</button>
+      <button class="op" data-value="*">×</button>
+
+      <button class="utility" data-value="sin(">sin</button>
+      <button class="utility" data-value="cos(">cos</button>
+      <button class="utility" data-value="tan(">tan</button>
+      <button class="utility" data-value="ln(">ln</button>
+      <button class="utility" data-value="log(">log</button>
+      <button class="utility" data-value="sqrt(">√</button>
+
+      <button class="utility" data-value="(">(</button>
+      <button class="utility" data-value=")">)</button>
+      <button class="utility" data-value="pi">π</button>
+      <button class="utility" data-value="e">e</button>
+      <button class="utility" data-action="square">x²</button>
+      <button class="utility" data-value="^">xʸ</button>
+
+      <button data-value="7">7</button>
+      <button data-value="8">8</button>
+      <button data-value="9">9</button>
+      <button class="op" data-value="-">−</button>
+      <button data-value="4">4</button>
+      <button data-value="5">5</button>
+      <button data-value="6">6</button>
+      <button class="op" data-value="+">+</button>
+
+      <button data-value="1">1</button>
+      <button data-value="2">2</button>
+      <button data-value="3">3</button>
+      <button class="equals" data-action="equals">=</button>
+
+      <button class="wide" data-value="0">0</button>
+      <button data-value=".">.</button>
+    </section>
+  </main>
+
+  <script>
+    const expressionEl = document.getElementById("expression");
+    const resultEl = document.getElementById("result");
+    const keys = document.querySelector(".keys");
+    const display = document.getElementById("display");
+
+    let expression = "";
+    let justEvaluated = false;
+
+    const operatorSymbols = {
+      "+": "+",
+      "-": "−",
+      "*": "×",
+      "/": "÷",
+      "^": "^",
+    };
+
+    const formatExpression = (value) =>
+      value
+        .replace(/sqrt\(/g, "√(")
+        .replace(/pi/g, "π")
+        .replace(/\*/g, "×")
+        .replace(/\//g, "÷")
+        .replace(/\^/g, "^")
+        .replace(/sin\(/g, "sin(")
+        .replace(/cos\(/g, "cos(")
+        .replace(/tan\(/g, "tan(")
+        .replace(/ln\(/g, "ln(")
+        .replace(/log\(/g, "log(")
+        .replace(/\+/g, "+")
+        .replace(/-/g, "−");
+
+    const flashDisplay = () => {
+      display.classList.add("active");
+      window.clearTimeout(display.dataset.timer);
+      const timer = window.setTimeout(() => display.classList.remove("active"), 200);
+      display.dataset.timer = timer;
+    };
+
+    const updateDisplay = (result = "0") => {
+      const formatted = expression ? formatExpression(expression) : "Ready";
+      expressionEl.textContent = formatted;
+      resultEl.textContent = result;
+    };
+
+    const clearAll = () => {
+      expression = "";
+      justEvaluated = false;
+      updateDisplay("0");
+    };
+
+    const lastChar = () => expression.slice(-1);
+
+    const normalizeExpression = () => {
+      let normalized = expression;
+      normalized = normalized.replace(/pi/g, "Math.PI");
+      normalized = normalized.replace(/e/g, "Math.E");
+      normalized = normalized.replace(/sin\(/g, "Math.sin(");
+      normalized = normalized.replace(/cos\(/g, "Math.cos(");
+      normalized = normalized.replace(/tan\(/g, "Math.tan(");
+      normalized = normalized.replace(/ln\(/g, "Math.log(");
+      normalized = normalized.replace(/log\(/g, "Math.log10(");
+      normalized = normalized.replace(/sqrt\(/g, "Math.sqrt(");
+      normalized = normalized.replace(/\^/g, "**");
+      normalized = normalized.replace(/%/g, "/100");
+      return normalized;
+    };
+
+    const safeEvaluate = () => {
+      if (!expression || /[+\-*/.^]$/.test(expression)) {
+        return "0";
+      }
+      if (!/^[0-9+\-*/().^%pieasincotglrn\s]+$/.test(expression)) {
+        return "Error";
+      }
+      try {
+        const normalized = normalizeExpression();
+        const result = Function(`"use strict"; return (${normalized})`)();
+        if (!Number.isFinite(result)) {
+          return "Error";
+        }
+        return result.toString();
+      } catch (error) {
+        return "Error";
+      }
+    };
+
+    const appendNumber = (value) => {
+      if (justEvaluated) {
+        expression = value === "." ? "0." : value;
+        justEvaluated = false;
+        updateDisplay(expression);
+        return;
+      }
+      if (value === ".") {
+        const parts = expression.split(/[+\-*/^]/);
+        const currentPart = parts[parts.length - 1] || "";
+        if (!currentPart.includes(".")) {
+          expression = expression ? expression + "." : "0.";
+        }
+      } else {
+        expression += value;
+      }
+      updateDisplay(expression || "0");
+    };
+
+    const appendOperator = (value) => {
+      if (!expression) {
+        if (value === "-") {
+          expression = "-";
+          updateDisplay(expression);
+        }
+        return;
+      }
+      if (["+", "-", "*", "/", "^"].includes(lastChar())) {
+        expression = expression.slice(0, -1) + value;
+      } else {
+        expression += value;
+      }
+      justEvaluated = false;
+      updateDisplay(expression);
+    };
+
+    const appendFunction = (value) => {
+      if (justEvaluated) {
+        expression = "";
+        justEvaluated = false;
+      }
+      expression += value;
+      updateDisplay(expression || "0");
+    };
+
+    const handleBackspace = () => {
+      if (justEvaluated) {
+        clearAll();
+        return;
+      }
+      expression = expression.slice(0, -1);
+      updateDisplay(expression || "0");
+    };
+
+    const toggleSign = () => {
+      if (!expression) {
+        expression = "-";
+      } else {
+        expression = expression.startsWith("-") ? expression.slice(1) : `-${expression}`;
+      }
+      updateDisplay(expression || "0");
+    };
+
+    const squareCurrent = () => {
+      if (!expression) return;
+      expression = `(${expression})^2`;
+      updateDisplay(expression);
+    };
+
+    const handleEquals = () => {
+      const result = safeEvaluate();
+      updateDisplay(result);
+      flashDisplay();
+      if (result !== "Error") {
+        expression = result;
+        justEvaluated = true;
+      }
+    };
+
+    const handleInput = (value) => {
+      if (value === "clear") {
+        clearAll();
+        return;
+      }
+      if (value === "backspace") {
+        handleBackspace();
+        return;
+      }
+      if (value === "toggle-sign") {
+        toggleSign();
+        return;
+      }
+      if (value === "square") {
+        squareCurrent();
+        return;
+      }
+      if (value === "equals") {
+        handleEquals();
+        return;
+      }
+      if (value && value.endsWith("(")) {
+        appendFunction(value);
+        return;
+      }
+      if (["+", "-", "*", "/", "^"].includes(value)) {
+        appendOperator(value);
+        return;
+      }
+      if (/^[0-9.]$/.test(value)) {
+        appendNumber(value);
+        return;
+      }
+      if (["(", ")", "pi", "e", "%"].includes(value)) {
+        appendFunction(value);
+      }
+    };
+
+    keys.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const value = button.dataset.value || button.dataset.action;
+      handleInput(value);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const { key } = event;
+      if (/^[0-9]$/.test(key)) {
+        handleInput(key);
+      } else if (key === ".") {
+        handleInput(".");
+      } else if (["+", "-", "*", "/", "^"].includes(key)) {
+        handleInput(key);
+      } else if (key === "(") {
+        handleInput("(");
+      } else if (key === ")") {
+        handleInput(")");
+      } else if (key === "Enter" || key === "=") {
+        event.preventDefault();
+        handleInput("equals");
+      } else if (key === "Backspace") {
+        handleInput("backspace");
+      } else if (key === "Escape") {
+        handleInput("clear");
+      }
+    });
+
+    clearAll();
+  </script>
+</body>
+</html>
