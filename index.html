@@ -54,6 +54,7 @@
       box-shadow: var(--shadow);
       backdrop-filter: blur(18px);
       border: 1px solid rgba(148, 163, 184, 0.08);
+      animation: panelFloat 0.6s ease;
     }
 
     .header {
@@ -122,6 +123,7 @@
       box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
       position: relative;
       overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .display::after {
@@ -136,6 +138,11 @@
 
     .display.active::after {
       opacity: 1;
+    }
+
+    .display.focused {
+      transform: translateY(-2px);
+      box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.35), 0 12px 25px rgba(15, 23, 42, 0.4);
     }
 
     .display .expression {
@@ -181,6 +188,12 @@
       word-break: break-all;
       position: relative;
       z-index: 1;
+      transition: transform 0.25s ease, color 0.25s ease;
+    }
+
+    .result.pop {
+      transform: scale(1.02);
+      color: var(--accent-bright);
     }
 
     .toolbar {
@@ -247,6 +260,11 @@
 
     button.key:active {
       transform: scale(0.97);
+    }
+
+    button.key.is-pressed {
+      transform: scale(0.96);
+      box-shadow: 0 10px 18px rgba(124, 58, 237, 0.25);
     }
 
     .op {
@@ -341,6 +359,24 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    @keyframes panelFloat {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
       }
     }
 
@@ -476,6 +512,7 @@
     let justEvaluated = false;
     let memoryValue = 0;
     let angleMode = "deg";
+    let lastResult = "0";
 
     const formatExpression = (value) =>
       value
@@ -505,6 +542,11 @@
       resultEl.textContent = result;
       if (document.activeElement !== expressionInput) {
         expressionInput.value = expression;
+      }
+      if (result !== lastResult) {
+        resultEl.classList.add("pop");
+        window.setTimeout(() => resultEl.classList.remove("pop"), 200);
+        lastResult = result;
       }
     };
 
@@ -707,34 +749,42 @@
     const handleInput = (value) => {
       if (value === "clear") {
         clearAll();
+        triggerKeyFeedback("clear");
         return;
       }
       if (value === "backspace") {
         handleBackspace();
+        triggerKeyFeedback("backspace");
         return;
       }
       if (value === "toggle-sign") {
         toggleSign();
+        triggerKeyFeedback("toggle-sign");
         return;
       }
       if (value === "square") {
         squareCurrent();
+        triggerKeyFeedback("square");
         return;
       }
       if (value === "equals") {
         handleEquals();
+        triggerKeyFeedback("equals");
         return;
       }
       if (["+", "-", "*", "/", "^"].includes(value)) {
         appendOperator(value);
+        triggerKeyFeedback(value);
         return;
       }
       if (/^[0-9.]$/.test(value)) {
         appendNumber(value);
+        triggerKeyFeedback(value);
         return;
       }
       if (value) {
         appendToken(value);
+        triggerKeyFeedback(value);
       }
     };
 
@@ -753,6 +803,19 @@
         handleEquals();
       }
     });
+
+    expressionInput.addEventListener("focus", () => display.classList.add("focused"));
+    expressionInput.addEventListener("blur", () => display.classList.remove("focused"));
+
+    const triggerKeyFeedback = (value) => {
+      if (!value) return;
+      const button = document.querySelector(
+        `.keys [data-value="${CSS.escape(value)}"], .keys [data-action="${CSS.escape(value)}"]`
+      );
+      if (!button) return;
+      button.classList.add("is-pressed");
+      window.setTimeout(() => button.classList.remove("is-pressed"), 150);
+    };
 
     keys.addEventListener("click", (event) => {
       const button = event.target.closest("button");
